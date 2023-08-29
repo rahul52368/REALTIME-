@@ -1,0 +1,59 @@
+import tweepy
+import matplotlib.pyplot as plt
+from datetime import datetime
+from collections import defaultdict
+
+# Twitter API credentials
+consumer_key = "YOUR_CONSUMER_KEY"
+consumer_secret = "YOUR_CONSUMER_SECRET"
+access_token = "YOUR_ACCESS_TOKEN"
+access_token_secret = "YOUR_ACCESS_TOKEN_SECRET"
+
+# Create a Tweepy OAuthHandler
+auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+auth.set_access_token(access_token, access_token_secret)
+
+# Create a Tweepy API object
+api = tweepy.API(auth)
+
+# Initialize data structures to store tweet counts
+hashtags_count = defaultdict(int)
+
+# Create a plot for real-time visualization
+plt.ion()  # Turn on interactive mode
+fig, ax = plt.subplots(figsize=(8, 6))
+
+# Function to update and visualize the plot
+def update_plot():
+    ax.clear()
+    sorted_hashtags = sorted(hashtags_count.items(), key=lambda x: x[1], reverse=True)[:10]
+    hashtags, counts = zip(*sorted_hashtags)
+    ax.bar(hashtags, counts)
+    ax.set_title("Top 10 Hashtags")
+    ax.set_xlabel("Hashtags")
+    ax.set_ylabel("Counts")
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.draw()
+
+# Fetch and process real-time tweets
+class MyStreamListener(tweepy.StreamListener):
+    def on_status(self, status):
+        # Process the tweet
+        for hashtag in status.entities['hashtags']:
+            hashtag_text = hashtag['text'].lower()
+            hashtags_count[hashtag_text] += 1
+
+        # Update the plot
+        update_plot()
+
+# Create a stream listener
+stream_listener = MyStreamListener()
+stream = tweepy.Stream(auth=api.auth, listener=stream_listener)
+
+# Start streaming with specific keywords (hashtags)
+stream.filter(track=["python", "data science", "machine learning"])
+
+# Keep the plot open until manually closed
+plt.ioff()
+plt.show()
